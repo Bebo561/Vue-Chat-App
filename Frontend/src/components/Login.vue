@@ -25,7 +25,34 @@
   },
   methods: {
     Submit(event : Event) {
-      alert(this.Login.username)
+      console.log(event);
+      if(this.Login.username === "" ||  this.Login.password === ""){
+        return alert("Fill in fields");
+      }
+      var data = {
+        Username: this.Login.username,
+        Password: this.Login.password
+      }
+      const url = "http://localhost:5000/Login"
+      fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+      "Content-Type": "application/json"
+        },
+      body: JSON.stringify(data)
+        }).then(response => response.json())
+    .then(data => {
+        const value = data.Data;
+        const token = data.Token;
+        console.log(token)
+        sessionStorage.setItem("Token", token);
+        sessionStorage.setItem("User", this.Login.username);
+        alert(value); // Print 'Hi' to the console
+    }).catch((err) => {
+        alert(err);
+        event.target.reset();
+    })
     }
   }
 }
@@ -122,5 +149,10 @@
   #Login-Button:active{
     transform: scale(1.05);
     transition: all 0.3s;
+  }
+  @media (max-width: 480px) {
+    #Login-Form{
+      width: 70vw;
+    }
   }
 </style>

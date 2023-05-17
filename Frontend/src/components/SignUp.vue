@@ -11,9 +11,32 @@ export default {
   },
   methods: {
     Submit(event: Event) {
+        event.preventDefault();
       if(this.SignUp.username === "" || this.SignUp.displayName === "" || this.SignUp.password === ""){
         return alert("Fill in fields");
       }
+      var data = {
+        Username: this.SignUp.username,
+        Password: this.SignUp.password,
+        DisplayName: this.SignUp.displayName
+      }
+      const url = "http://localhost:5000/Register"
+      fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+      "Content-Type": "application/json"
+        },
+      body: JSON.stringify(data)
+        }).then(response => response.json())
+    .then(data => {
+        const value = data.Data;
+        alert(value); // Print 'Hi' to the console
+        this.$router.push('/another-page');
+    }).catch((err) => {
+        alert(err);
+        event.target.reset();
+    })
     }
   }
 }
@@ -30,7 +53,7 @@ export default {
         <label>Enter Display Name</label>
         <input type="text" v-model="SignUp.displayName" placeholder="Goku">
         <label>Enter Password</label>
-        <input type="password" v-model="SignUp.password" placeholder="***">
+        <input type="password" minlength="8" v-model="SignUp.password" placeholder="***">
         <button>Register</button>
         <hr>
         <h2>Have An Account? <a href="/">Log In</a></h2>
@@ -135,5 +158,10 @@ export default {
   }
   input:focus{
     background-color: white;
+  }
+  @media (max-width: 480px) {
+    Form{
+      width: 70vw;
+    }
   }
 </style>
