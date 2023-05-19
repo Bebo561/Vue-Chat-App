@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import bcrypt
 from flask_cors import CORS
+from flask_socketio import SocketIO, join_room, leave_room, emit
 import jwt, datetime
 import json
 
@@ -12,12 +13,19 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Bebo$561@localhost
 app.app_context().push()
 db = SQLAlchemy(app)
 salt = bcrypt.gensalt(10)
+socketio = SocketIO(app, cors_allowed_origins='http://localhost:3000')
 
 class Users(db.Model):
    Userid = db.Column(db.Integer, primary_key = True)
    Username = db.Column(db.String(20), unique = True)
    Displayname = db.Column(db.String(10))
    Password = db.Column(db.String(100)) 
+
+class Messages(db.Model):
+    Messageid = db.Column(db.Integer, primary_key = True)
+    Userfrom = db.Column(db.String(20))
+    UserTo = db.Column(db.String(20))
+    Contents = db.Column(db.String(250))
 
 @app.route('/Register', methods=['POST'])
 def Register():
@@ -63,6 +71,13 @@ def Login():
             return jsonify({'Data': 'Error'}),403
     else:
         return jsonify({'Data': 'Does Not Exist'}),400
+
+@socketio.on('message')
+def handle_message(data):
+    print('received message: ' + data)
+
+
 if __name__ == '__main__':
    db.create_all()
    app.run(debug = True)
+   socketio.run(app)

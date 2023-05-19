@@ -48,7 +48,8 @@
         console.log(token)
         sessionStorage.setItem("Token", token);
         sessionStorage.setItem("User", this.Login.username);
-        alert(value); // Print 'Hi' to the console
+        alert(value); 
+        this.$router.push('/Main');
     }).catch((err) => {
         alert(err);
         event.target.reset();
@@ -120,6 +121,7 @@
     background-color: rgb(225, 215, 215);
     border: 1px solid black;
     border-radius: 4px;
+    padding: 5px;
     margin-top: 1vh;
     margin-left: auto;
     margin-right: auto;

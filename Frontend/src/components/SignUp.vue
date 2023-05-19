@@ -32,7 +32,7 @@ export default {
     .then(data => {
         const value = data.Data;
         alert(value); // Print 'Hi' to the console
-        this.$router.push('/another-page');
+        this.$router.push('/');
     }).catch((err) => {
         alert(err);
         event.target.reset();
