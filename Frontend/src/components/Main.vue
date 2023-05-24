@@ -2,6 +2,10 @@
 
   <div id="Contacts-Bar">
     <h1 id = "ContactHeader">Contacts</h1>
+    <img src="Images/settings.png" alt="Settings" @click="Render.Div = !Render.Div">
+    <div v-if="Render.Div === true" id="LogOutDiv" >
+      <button id="LogOut" @click.prevent="Logout">LogOut</button>
+    </div>
   </div>
   <div id="Message">
     <h1>Hello</h1>
@@ -20,15 +24,26 @@ export default {
     return {
       Message:{
         Username: user,
-        Content: "",
+        Content: ""
+      },
+      Render:{
+        Div: false
       }
+    }
+  },
+  methods: {
+    Logout(event : Event) {
+      console.log(event);
+      sessionStorage.clear();
+      this.$router.push("/");
     }
   },
     watch: {
     'SignedInCheck': {
       handler() {
+        var user = sessionStorage.getItem("User");
         if(user === null){
-            this.$router.push('/');
+          this.$router.push("/")
         }
       },
       immediate: true
@@ -49,6 +64,19 @@ const socket = io("http://localhost:5000/Login");
         border-right: 3px solid white;
         height: 100%;
     }
+    img{
+      height: 7%;
+      position: absolute;
+      right: 0;
+      background-color: white;
+      border-radius: 100%;
+      margin-right: 1%;
+      top: 0;
+      margin-top: 3%;
+    }
+    img:hover{
+      cursor: pointer;
+    }
     #Message{
         min-width: 79.5%;
         color: white;
@@ -57,6 +85,35 @@ const socket = io("http://localhost:5000/Login");
         background-color:  #121212;
         top: 0;
         right: 0;
+    }
+    #LogOut{
+      background-color: blue;
+      color: white;
+      font-size: 1rem;
+      font-weight: 500;
+      height: 50%;
+      margin-top: 10%;
+      border: solid black 1px;
+      border-radius: 8px;
+      width: 70%;
+    }
+    #LogOut:hover{
+      background-color: black;
+      cursor: pointer;
+    }
+    #LogOutDiv{
+      height: 10%; 
+      width: 70%;
+      border: 1px solid black;
+      border-radius: 8px;
+      position: absolute;
+      background-color: white;
+      top: 0;
+      display: flex;
+      justify-content: center;
+      margin-top: 24%;
+      left: 0;
+      margin-left: 12vh;
     }
     #WriteArea{
         position: absolute;
