@@ -49,7 +49,7 @@
         sessionStorage.setItem("Token", token);
         sessionStorage.setItem("User", this.Login.username);
         alert(value); 
-        this.$router.push('/Main');
+        this.$router.push('/Contacts');
     }).catch((err) => {
         alert(err);
         event.target.reset();
