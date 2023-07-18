@@ -18,7 +18,7 @@ socketio = SocketIO(app, cors_allowed_origins='http://localhost:3000')
 class Users(db.Model):
    Userid = db.Column(db.Integer, primary_key = True)
    Username = db.Column(db.String(20), unique = True)
-   Displayname = db.Column(db.String(10))
+   Photo = db.Column(db.Text)
    Password = db.Column(db.String(100)) 
 
 class Messages(db.Model):
@@ -71,6 +71,16 @@ def Login():
             return jsonify({'Data': 'Error'}),403
     else:
         return jsonify({'Data': 'Does Not Exist'}),400
+
+#This will be called everytime the account page is loaded, sends details about the account to the frontend.
+@app.route('/AccountRetrieveDetails', methods=['GET'])
+def AccountRetrieveDetails():
+    return
+
+#This will be called everytime the user updates their pfp or username.
+@app.route('/AccountUpdate', methods=["PUT"])
+def AccountUpdate():
+    return
 
 @socketio.on('message')
 def handle_message(data):

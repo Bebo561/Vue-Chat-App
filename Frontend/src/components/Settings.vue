@@ -1,14 +1,145 @@
 <template>
-    <h1>Hello World</h1>
+   <div id="AccountPage">
+        <h1 id="Contacts" @click.prevent="Contacts">Back</h1>
+        <img src="src/assets/Default.jpg" alt="Profile Picture" id="AccountPhoto"/>
+        <input id="UpdatePhoto" type="file" @change="handleFileChange" accept=".png, .jpg, .jpeg" />
+        <h3 id="Username" >{{ User }}</h3>
+        <input type="text" id="UpdateUsername" v-model="NewUsername" placeholder="Update Username"/>
+        <button id="Update-Button">Update</button>
+   </div>
 </template>
 
 <style scoped>
-h1{
-    color: black;
-    font-size: 10vh;
-}
+    #Contacts{
+        font-size: 2 rem;
+        font-weight: 500;
+        position: absolute; 
+        top: 0;
+        left: 0;
+        color: white;
+        margin-left: 2vw;
+    }
+    #Contacts:hover{
+        color: blue;
+        cursor: pointer;
+    }
+    #AccountPage{
+        height: 100%;
+        width: 100%;
+        top: 0;
+        left: 0;
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: rgb(35, 35, 35);
+    }
+    #UpdatePhoto{
+        margin-left: 10vw;
+        margin-top: 1%;
+        color: white;
+        cursor: pointer;
+    }
+    #Update-Button{
+        height: 5vh;
+        width: 7vw;
+        background-color: rgb(42, 88, 255);
+        color: black;
+        font-size: 1rem;
+        font-family: Arial;
+        font-weight: 500;
+        border: 1px solid black;
+        border-radius: 4px;
+        margin-top: 2%;
+    }
+    #Update-Button:hover{
+        background-color: white;
+        border: 1px solid black;
+        transition: 0.3s ease;
+        cursor: pointer;
+    }
+    #Username{
+        font-size: 2.5rem;
+        font-family: Arial;
+        color: white;
+        font-weight: 600;
+    }
+    #UpdateUsername{
+        border-radius: 6px;
+        height: 5%;
+        border:none;
+        padding: 5px;
+        width: 15vw;
+        transform: translateY(-25%);
+        caret-color: black;
+    }
+    #UpdateUsername:hover{
+        outline: none;
+        cursor: auto;
+        transform: translateY(-25%);
+    }
+    #AccountPhoto{
+        height: 45%;
+        margin-top: 2%;
+        border-radius: 50%;
+    }
+    @media (max-width: 480px){
+        #AccountPhoto{
+            height: 35%;
+           
+        }
+        #Contacts{
+            font-size: 1.5rem;
+        }
+        #UpdatePhoto{
+            margin-top: 5%;
+        }
+        #Username{
+            font-size: 3rem;
+        }
+        #UpdateUsername{
+            width: 40%;
+        }
+        #Update-Button{
+            width: 40%;
+            margin-top: 5%;
+            height: 7%;
+        }
+    }
 </style>
 
 <script lang="ts">
+    export default {
+        data() {
+            return {
+                 User: sessionStorage.getItem("User") || "Default Username",
 
+                 ImageFile: null,
+                 NewUsername: null,
+                
+            };
+        },
+        methods: {
+            Contacts(event: Event){
+                console.log(event);
+                this.$router.push("/Contacts");
+            },
+            handleSubmit(event: Event){
+                console.log(event);
+            },
+            handleFileChange(event : Event) {
+                const file = event.target.files[0];
+                if (file) {
+                    var imageFile = file;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                    var imagePreview = e.target.result;
+                    this.ImageFile = e.target.result.split(',')[1]; 
+                    };
+                    reader.readAsDataURL(file);
+                } 
+            }
+        },
+    }
 </script>
