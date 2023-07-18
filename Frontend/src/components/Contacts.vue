@@ -35,7 +35,7 @@
       </svg>
     <div v-if="Render.Div === true" id="SettingsBar" >
       <button id="LogOut" @click.prevent="Logout">Logout</button>
-      <button id="Account">Account</button>
+      <button id="Account" @click.prevent="Account">Account</button>
     </div>
   </div>
   <div id="Contacts">
@@ -72,6 +72,7 @@
       display: flex column;
       justify-content: center;
       text-align: center;
+      z-index: 1;
     }
     #Account{
       background-color: white;
@@ -174,6 +175,10 @@ export default {
       console.log(event);
       sessionStorage.clear();
       this.$router.push("/");
+    },
+    Account(event: Event){
+      console.log(event);
+      this.$router.push("/Account")
     }
   },
     watch: {

@@ -4,13 +4,15 @@ import App from './App.vue'
 import Login from './components/Login.vue'
 import SignUp from './components/SignUp.vue'
 import Contacts from './components/Contacts.vue'
+import Settings from './components/Settings.vue'
 
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
     { path: '/', component: Login },
     {path: '/SignUp', component: SignUp},
-    {path: '/Contacts', component: Contacts}
+    {path: '/Contacts', component: Contacts},
+    {path: '/Account', component: Settings}
 ]
   
 
