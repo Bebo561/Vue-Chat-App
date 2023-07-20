@@ -1,11 +1,13 @@
 <template>
    <div id="AccountPage">
         <h1 id="Contacts" @click.prevent="Contacts">Back</h1>
-        <img src="src/assets/Default.jpg" alt="Profile Picture" id="AccountPhoto"/>
+        <img v-if="ImageFile === null" src="src/assets/Default.jpg" alt="Profile Picture" id="AccountPhoto"/>
+        <img v-else-if="ImageFile.substr(0,8) === 'iVBORw0K'" :src="`data:image/png;base64,${ImageFile}`"  alt="Profile Picture" id="AccountPhoto"/>
+        <img v-else  :src="`data:image/jpg;base64,${ImageFile}`" alt="Profile Picture" id="AccountPhoto"/>
         <input id="UpdatePhoto" type="file" @change="handleFileChange" accept=".png, .jpg, .jpeg" />
         <h3 id="Username" >{{ User }}</h3>
         <input type="text" id="UpdateUsername" v-model="NewUsername" placeholder="Update Username"/>
-        <button id="Update-Button">Update</button>
+        <button id="Update-Button" @click.prevent="handleSubmit">Update</button>
    </div>
 </template>
 
@@ -113,32 +115,114 @@
         data() {
             return {
                  User: sessionStorage.getItem("User") || "Default Username",
-
                  ImageFile: null,
                  NewUsername: null,
+                 NewImage: "",
                 
             };
         },
+        created() {
+            this.FetchUserData()
+        },
         methods: {
+            FetchUserData(){
+                const url = `http://localhost:5000/AccountRetrieveDetails?username=${this.User}`;
+                fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    this.ImageFile = data.Data.Photo;
+                    
+                }).catch(error => {
+                    console.error('Error fetching user data:', error);
+                });
+            },
             Contacts(event: Event){
                 console.log(event);
                 this.$router.push("/Contacts");
             },
             handleSubmit(event: Event){
                 console.log(event);
+                var token = sessionStorage.getItem("Token");
+                console.log(token);
+                const url = "http://localhost:5000/AccountUpdate";
+                if(this.NewImage !== ""){
+                const reader = new FileReader();
+                reader.readAsDataURL(this.NewImage);
+                reader.onload = () => {
+                    const base64String = reader.result.split(',')[1];
+                    var data = {
+                        Username: this.User,
+                        NewUser: this.NewUsername,
+                        Photo: base64String,
+                        Token: token
+                    };
+                    fetch(url, {
+                    method: 'PUT',
+                    mode: 'cors',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => response.json())
+                    .then(data => {
+                        if(data.Data === 'Invalid Token' || data.Data === "Token Expired"){
+                            alert(data.Data)
+                            this.$router.push("/");
+                        }
+                        else{
+                            var UpdatedData = data.Data;
+                            console.log(UpdatedData)
+                            sessionStorage.setItem("User", UpdatedData.Username);
+                            this.User = UpdatedData.Username;
+                            this.ImageFile = UpdatedData.Photo
+                        
+                        }
+
+                    });
+
+                };
+                }
+                else{
+                    var data = {
+                        Username: this.User,
+                        NewUser: this.NewUsername,
+                        Photo: null,
+                        Token: token
+                    };
+                    fetch(url, {
+                    method: 'PUT',
+                    mode: 'cors',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => response.json())
+                    .then(data => {
+                        if(data.Data === 'Invalid Token' || data.Data === "Token Expired"){
+                            alert(data.Data)
+                            this.$router.push("/");
+                        }
+                        else{
+                            var UpdatedData = data.Data;
+                            console.log(UpdatedData)
+                            sessionStorage.setItem("User", UpdatedData.Username);
+                            this.User = UpdatedData.Username;
+                        
+                        }
+                        
+                    })
+                }
             },
             handleFileChange(event : Event) {
-                const file = event.target.files[0];
-                if (file) {
-                    var imageFile = file;
-
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                    var imagePreview = e.target.result;
-                    this.ImageFile = e.target.result.split(',')[1]; 
-                    };
-                    reader.readAsDataURL(file);
-                } 
+                this.NewImage =  event.target.files[0];
+                
+                console.log(this.NewImage)
             }
         },
     }

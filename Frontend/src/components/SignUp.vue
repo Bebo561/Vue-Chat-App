@@ -4,7 +4,6 @@ export default {
     return {
       SignUp:{
         username: "",
-        displayName: "",
         password: ""
       }
     }
@@ -12,13 +11,12 @@ export default {
   methods: {
     Submit(event: Event) {
         event.preventDefault();
-      if(this.SignUp.username === "" || this.SignUp.displayName === "" || this.SignUp.password === ""){
+      if(this.SignUp.username === "" || this.SignUp.password === ""){
         return alert("Fill in fields");
       }
       var data = {
         Username: this.SignUp.username,
-        Password: this.SignUp.password,
-        DisplayName: this.SignUp.displayName
+        Password: this.SignUp.password
       }
       const url = "http://localhost:5000/Register"
       fetch(url, {
@@ -50,8 +48,6 @@ export default {
         <hr id="Hr-1">
         <label>Enter Username</label>
         <input type="text" v-model="SignUp.username" placeholder="CoolGuy123">
-        <label>Enter Display Name</label>
-        <input type="text" v-model="SignUp.displayName" placeholder="Goku">
         <label>Enter Password</label>
         <input type="password" minlength="8" v-model="SignUp.password" placeholder="***">
         <button>Register</button>

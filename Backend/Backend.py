@@ -4,7 +4,7 @@ from flask_bcrypt import bcrypt
 from flask_cors import CORS
 from flask_socketio import SocketIO, join_room, leave_room, emit
 import jwt, datetime
-import json
+import json, base64
 
 
 app = Flask(__name__)
@@ -18,14 +18,21 @@ socketio = SocketIO(app, cors_allowed_origins='http://localhost:3000')
 class Users(db.Model):
    Userid = db.Column(db.Integer, primary_key = True)
    Username = db.Column(db.String(20), unique = True)
-   Photo = db.Column(db.Text)
+   Photo = db.Column(db.LargeBinary(length=(2**32) - 1))
    Password = db.Column(db.String(100)) 
+   
+class MessagesWith(db.Model):
+    Userid = db.Column(db.Integer, primary_key = True)
+    MessagedUser = db.Column(db.String(20), unique = True)
+    MessagedUserId = db.column(db.Integer)
 
 class Messages(db.Model):
     Messageid = db.Column(db.Integer, primary_key = True)
     Userfrom = db.Column(db.String(20))
     UserTo = db.Column(db.String(20))
-    Contents = db.Column(db.String(250))
+    Contents = db.Column(db.LargeBinary(length=(2**32) - 1))
+    #Text, PNG, or JPG
+    MessageType = db.column(db.String(20))
 
 @app.route('/Register', methods=['POST'])
 def Register():
@@ -35,13 +42,11 @@ def Register():
     password = str(data["Password"])
     Password = bcrypt.hashpw(password.encode('utf-8'), bytes(salt))
 
-    Displayname = data["DisplayName"]
     user = Users.query.filter_by(Username=Username).first()
     if user:
         return jsonify({'Data': 'Already Exists'}), 401
-
     try:
-        New_user = Users(Username= Username, Displayname = Displayname, Password = Password )
+        New_user = Users(Username= Username, Password = Password)
         db.session.add(New_user)
         db.session.commit()
         return jsonify({'Data': 'Success'}), 200
@@ -66,7 +71,7 @@ def Login():
             token = jwt.encode(payload, 'SECRET_KEY', algorithm='HS256')
             trueToken = jwt.decode(token, 'SECRET_KEY', algorithms=['HS256'])
             return jsonify({'Data': 'Success',
-                            'Token': trueToken}), 200
+                            'Token': token}), 200
         else:
             return jsonify({'Data': 'Error'}),403
     else:
@@ -75,12 +80,73 @@ def Login():
 #This will be called everytime the account page is loaded, sends details about the account to the frontend.
 @app.route('/AccountRetrieveDetails', methods=['GET'])
 def AccountRetrieveDetails():
-    return
+    username = request.args.get('username')
+    user = Users.query.filter_by(Username = username).first()
+    base64_string = None
+    if user:
+        if user.Photo is not None:
+            base64_string = base64.b64encode(user.Photo).decode('utf-8')
+        data = {
+            'Username': user.Username,
+            'Photo': base64_string
+        }
+        return jsonify({'Data': data}), 200
+    else:
+        return jsonify({"Data": "Server Error"}), 400
+    
 
 #This will be called everytime the user updates their pfp or username.
 @app.route('/AccountUpdate', methods=["PUT"])
 def AccountUpdate():
-    return
+    Json = request.json
+    data =json.loads(request.data)
+    Token = data["Token"]
+    OldUsername = data["Username"]
+    NewUsername = data["NewUser"]
+    NewPhoto = data["Photo"]
+    print(Json["Token"])
+
+    try:
+            jwt.decode(Token, 'SECRET_KEY', algorithms=['HS256'])
+            NewUser = Users.query.filter_by(Username=NewUsername).first()
+            if NewUser:
+                return jsonify({"Data": "Username Already Taken"}), 402
+            else:
+                user = Users.query.filter_by(Username=OldUsername).first()
+                if NewUsername is not None and NewPhoto is not None:
+                    binaryData = base64.b64decode(NewPhoto)
+                    user.Photo = binaryData
+                    user.Username = NewUsername
+                    db.session.commit()
+                    ReturnData = {
+                    "Username": user.Username,
+                    "Photo": NewPhoto
+                    }
+                    return jsonify({"Data": ReturnData}), 200
+                elif NewPhoto is not None:
+                    binaryData = base64.b64decode(NewPhoto)
+                    user.Photo = binaryData
+                    db.session.commit()
+                    ReturnData = {
+                    "Username": user.Username,
+                    "Photo": NewPhoto
+                    }
+                    return jsonify({"Data": ReturnData}), 200
+
+                else:
+                    user.Username = NewUsername
+                    db.session.commit()
+                    ReturnData = {
+                    "Username": user.Username,
+                    "Photo": NewPhoto
+                    }
+                    return jsonify({"Data": ReturnData}), 200
+
+    except jwt.ExpiredSignatureError:
+            return jsonify({"Data": "Token Expired"}), 401
+    except jwt.InvalidTokenError:
+            return jsonify({"Data": "Invalid Token"}), 403
+    
 
 @socketio.on('message')
 def handle_message(data):

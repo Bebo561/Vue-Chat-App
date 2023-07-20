@@ -46,7 +46,7 @@
         const value = data.Data;
         const token = data.Token;
         console.log(token)
-        sessionStorage.setItem("Token", token);
+        sessionStorage.setItem("Token", data.Token);
         sessionStorage.setItem("User", this.Login.username);
         alert(value); 
         this.$router.push('/Contacts');
