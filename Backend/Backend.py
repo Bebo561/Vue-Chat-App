@@ -105,7 +105,8 @@ def AccountUpdate():
     NewUsername = data["NewUser"]
     NewPhoto = data["Photo"]
     print(Json["Token"])
-
+    print(NewUsername)
+    print(NewUsername.isspace())
     try:
             jwt.decode(Token, 'SECRET_KEY', algorithms=['HS256'])
             NewUser = Users.query.filter_by(Username=NewUsername).first()
@@ -114,6 +115,9 @@ def AccountUpdate():
             else:
                 user = Users.query.filter_by(Username=OldUsername).first()
                 if NewUsername is not None and NewPhoto is not None:
+                    if NewUsername.isspace() == True:
+                        print("Hi")
+                        return jsonify({"Data": "Please Enter a valid Username"}), 402
                     binaryData = base64.b64decode(NewPhoto)
                     user.Photo = binaryData
                     user.Username = NewUsername
@@ -123,6 +127,7 @@ def AccountUpdate():
                     "Photo": NewPhoto
                     }
                     return jsonify({"Data": ReturnData}), 200
+                    
                 elif NewPhoto is not None:
                     binaryData = base64.b64decode(NewPhoto)
                     user.Photo = binaryData
@@ -133,7 +138,7 @@ def AccountUpdate():
                     }
                     return jsonify({"Data": ReturnData}), 200
 
-                else:
+                elif NewUsername.isspace() == False:
                     user.Username = NewUsername
                     db.session.commit()
                     ReturnData = {
@@ -141,6 +146,10 @@ def AccountUpdate():
                     "Photo": NewPhoto
                     }
                     return jsonify({"Data": ReturnData}), 200
+                
+                elif NewUsername.isspace() == True:
+                    print("Hi")
+                    return jsonify({"Data": "Please Enter a valid Username"}), 402
 
     except jwt.ExpiredSignatureError:
             return jsonify({"Data": "Token Expired"}), 401

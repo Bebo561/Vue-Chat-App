@@ -175,12 +175,15 @@
                             alert(data.Data)
                             this.$router.push("/");
                         }
+                        else if (data.Data === "Please Enter a valid Username"){
+                                alert(data.Data)
+                        }
                         else{
                             var UpdatedData = data.Data;
                             console.log(UpdatedData)
                             sessionStorage.setItem("User", UpdatedData.Username);
                             this.User = UpdatedData.Username;
-                            this.ImageFile = UpdatedData.Photo
+                            this.ImageFile = UpdatedData.Photo;
                         
                         }
 
@@ -195,6 +198,7 @@
                         Photo: null,
                         Token: token
                     };
+                    
                     fetch(url, {
                     method: 'PUT',
                     mode: 'cors',
@@ -207,6 +211,9 @@
                         if(data.Data === 'Invalid Token' || data.Data === "Token Expired"){
                             alert(data.Data)
                             this.$router.push("/");
+                        }
+                        else if (data.Data === "Please Enter a valid Username"){
+                            alert(data.Data)
                         }
                         else{
                             var UpdatedData = data.Data;
