@@ -155,7 +155,27 @@ def AccountUpdate():
             return jsonify({"Data": "Token Expired"}), 401
     except jwt.InvalidTokenError:
             return jsonify({"Data": "Invalid Token"}), 403
+
+@app.route('/AccountSearch', methods=['GET'])
+def AccountSearch():  
+    Username = request.args.get('Username')
+    User = Users.query.filter(Users.Username.contains(Username)).all()
+    UserNameList = []
+    UserPhotos = []
     
+    for i in range(len(User)):
+        UserNameList.append(User[i].Username)
+        if User[i].Photo is not None:
+            base64_string = base64.b64encode(User[i].Photo).decode('utf-8')
+            UserPhotos.append(base64_string)
+        else:
+            UserPhotos.append(None)
+    Data = {
+        "UserList": UserNameList,
+        "UserPhotos": UserPhotos
+    }
+
+    return jsonify({"Data": Data}), 200
 
 @socketio.on('message')
 def handle_message(data):

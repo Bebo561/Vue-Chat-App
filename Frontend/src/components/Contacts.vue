@@ -2,7 +2,19 @@
 
   <div id="Header">
     <h1 id="Header-Title">Contacts</h1>
-    <input type="text" id="ContactSearch" placeholder="Search for other users"/>
+    <input type="text" id="ContactSearch" v-model="Search.User" placeholder="Search for other users"/>
+    <button id="AccountSearch" @click.prevent="HandleAccountSearch">Search</button>
+    <div v-if="SearchAccounts.FoundUsers !== null" id="SearchedAccounts">
+      <p id="Exit" @click="CloseSearch">{{ Render.Search }}</p>
+      <div v-for="(user, index) in SearchAccounts.FoundUsers" id="AccountHolder">
+        <img v-if="SearchAccounts.FoundUserPhotos[index] === null" src="src/assets/Default.jpg" alt="Profile Picture" id="UserPhotos"/>
+        <img v-else-if="SearchAccounts.FoundUserPhotos[index] .substr(0,8) === 'iVBORw0K'" :src="`data:image/png;base64,${SearchAccounts.FoundUserPhotos[index] }`"  alt="Profile Picture" id="UserPhotos"/>
+        <img v-else  :src="`data:image/jpg;base64,${SearchAccounts.FoundUserPhotos[index] }`" alt="Profile Picture" id="UserPhotos"/>
+        <p id="FoundUserName" >{{ SearchAccounts.FoundUsers[index]}}</p>
+      
+    </div>
+    </div>
+
     <svg fill="#000000" @click="Render.Div = !Render.Div" id="SettingsLogo"  version="1.1"  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
 	 viewBox="0 0 478.703 478.703" xml:space="preserve">
 <g>
@@ -43,14 +55,66 @@
     
 </template>
 <style scoped>
+  #UserPhotos{
+    height: 8vh;
+    width: 8vh;
+    border-radius: 50%;
+    margin-left: 5%;
+  }
+  #AccountHolder{ 
+    align-items: center;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    display: flex;
+  }
+  #FoundUserName{
+    margin-left: 10%;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  #SearchedAccounts{
+      position: absolute;
+      height: 40vh;
+      width: 25.5%;
+      display: flex column;
+      align-items: center;
+      top: 0;
+      z-index: 2;
+      margin-top: 8.6%;
+      border: 1px solid black;
+      border-radius: 4px;
+      margin-left: 37.2%;
+      overflow: auto;
+      background-color: rgb(115, 115, 115);
+    }
     #Contacts{
-      height: 100%;
+      max-height: 100%;
+      min-height: 90%;
       width: 100%;
       top: 0;
       left: 0;
       margin-top: 10%;
       background-color: rgb(35, 35, 35);
       position: absolute;
+    }
+    #AccountSearch{
+      height: 25%;
+      position: absolute;
+      margin-bottom: 2.65%;
+      left: 64%;
+      bottom: 0;
+      border-radius: 4px;
+      color: black;
+      background-color: blue;
+      font-size: 1rem;
+      font-weight: 500;
+      border: 0px;
+    }
+    #AccountSearch:hover{
+      background-color: black;
+      color: white;
+      transition: 0.3s ease;
+      cursor: pointer;
     }
     #SettingsLogo{
       height: 40%; 
@@ -176,6 +240,11 @@
     #Contacts{
       margin-top: 10vh;
     }
+    #AccountSearch{
+      left: 64%;
+      top: 0;
+      margin-top: 4.5%;
+    }
   }
 </style>
 
@@ -190,7 +259,15 @@ export default {
         Content: ""
       },
       Render:{
-        Div: false
+        Div: false,
+        Search: false,
+      },
+      Search:{
+        User: ""
+      },
+      SearchAccounts:{
+        FoundUsers: null,
+        FoundUserPhotos: null
       }
     }
   },
@@ -200,9 +277,36 @@ export default {
       sessionStorage.clear();
       this.$router.push("/");
     },
+    CloseSearch(event: Event){
+      console.log(event);
+      this.Render.Search = !this.Render.Search;
+      if(this.Render.Search === true){
+        this.SearchAccounts.FoundUsers = null;
+        this.SearchAccounts.FoundUserPhotos = null;
+      }
+    },
     Account(event: Event){
       console.log(event);
       this.$router.push("/Account")
+    },
+    HandleAccountSearch(event: Event){
+      console.log(event)
+      if(this.Search.User.trim() === ""){
+        return alert("Please enter a valid user")
+      }
+      const url = `http://localhost:5000/AccountSearch?Username=${this.Search.User}`;
+      fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }).then(response => response.json())
+        .then(data => {
+          console.log(data);
+          this.SearchAccounts.FoundUsers = data.Data.UserList;
+          this.SearchAccounts.FoundUserPhotos = data.Data.UserPhotos
+        })
     }
   },
     watch: {
