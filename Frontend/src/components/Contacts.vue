@@ -153,6 +153,30 @@
     #ContactSearch:focus::placeholder {
       color: rgb(135, 132, 132);
     }
+    @media (max-width: 480px) {
+    #SettingsLogo{
+      height: 15%;
+      width: 10%;
+      margin-top: 3vh;
+    }
+    #SettingsBar{
+      margin-top: 6vh;
+      width: 30%;
+    }
+    #Header-Title{
+      font-size: 1.5rem;
+      top: 0;
+      margin-top: 2vh;
+    }
+    #ContactSearch{
+      top: 0;
+      width: 20%;
+      margin-top: 2vh;
+    }
+    #Contacts{
+      margin-top: 10vh;
+    }
+  }
 </style>
 
 <script lang="ts">
