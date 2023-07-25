@@ -2,16 +2,16 @@
 
   <div id="Header">
     <h1 id="Header-Title">Contacts</h1>
-    <input type="text" id="ContactSearch" v-model="Search.User" placeholder="Search for other users"/>
+    <input type="text" id="ContactSearch" v-model="Search.User" @click="CloseSearch" placeholder="Search for other users"/>
     <button id="AccountSearch" @click.prevent="HandleAccountSearch">Search</button>
     <div v-if="SearchAccounts.FoundUsers !== null" id="SearchedAccounts">
-      <p id="Exit" @click="CloseSearch">{{ Render.Search }}</p>
-      <div v-for="(user, index) in SearchAccounts.FoundUsers" id="AccountHolder">
+      <div v-for="(user, index) in SearchAccounts.FoundUsers" @click="HandleAccountRedirect(user)" id="AccountHolder">
+        <div v-if="user !== SignedIn.SignedUser" id="AccountHolder">
         <img v-if="SearchAccounts.FoundUserPhotos[index] === null" src="src/assets/Default.jpg" alt="Profile Picture" id="UserPhotos"/>
         <img v-else-if="SearchAccounts.FoundUserPhotos[index] .substr(0,8) === 'iVBORw0K'" :src="`data:image/png;base64,${SearchAccounts.FoundUserPhotos[index] }`"  alt="Profile Picture" id="UserPhotos"/>
         <img v-else  :src="`data:image/jpg;base64,${SearchAccounts.FoundUserPhotos[index] }`" alt="Profile Picture" id="UserPhotos"/>
-        <p id="FoundUserName" >{{ SearchAccounts.FoundUsers[index]}}</p>
-      
+        <p id="FoundUserName" >{{ user }}</p>
+      </div>
     </div>
     </div>
 
@@ -63,9 +63,12 @@
   }
   #AccountHolder{ 
     align-items: center;
-    border-top: 1px solid black;
-    border-bottom: 1px solid black;
     display: flex;
+  }
+  #AccountHolder:hover{
+    cursor: pointer;
+    background-color: rgb(193, 191, 191);
+    transition: 0.3 ease;
   }
   #FoundUserName{
     margin-left: 10%;
@@ -254,13 +257,12 @@ var user = sessionStorage.getItem("User");
 export default {
     data() {
     return {
-      Message:{
-        Username: user,
-        Content: ""
-      },
       Render:{
         Div: false,
         Search: false,
+      },
+      SignedIn:{
+        SignedUser: user
       },
       Search:{
         User: ""
@@ -288,6 +290,11 @@ export default {
     Account(event: Event){
       console.log(event);
       this.$router.push("/Account")
+    },
+    HandleAccountRedirect(user : string){
+      this.$router.push({ 
+        name: 'Messages',
+        query: { User: user } });
     },
     HandleAccountSearch(event: Event){
       console.log(event)

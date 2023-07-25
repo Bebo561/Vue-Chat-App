@@ -5,6 +5,7 @@ import Login from './components/Login.vue'
 import SignUp from './components/SignUp.vue'
 import Contacts from './components/Contacts.vue'
 import Settings from './components/Settings.vue'
+import Messages from './components/Messages.vue'
 
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -12,7 +13,8 @@ const routes = [
     { path: '/', component: Login },
     {path: '/SignUp', component: SignUp},
     {path: '/Contacts', component: Contacts},
-    {path: '/Account', component: Settings}
+    {path: '/Account', component: Settings},
+    {path: '/Messages', component: Messages, name: 'Messages', query: {User: ''}},
 ]
   
 

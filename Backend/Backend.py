@@ -104,9 +104,6 @@ def AccountUpdate():
     OldUsername = data["Username"]
     NewUsername = data["NewUser"]
     NewPhoto = data["Photo"]
-    print(Json["Token"])
-    print(NewUsername)
-    print(NewUsername.isspace())
     try:
             jwt.decode(Token, 'SECRET_KEY', algorithms=['HS256'])
             NewUser = Users.query.filter_by(Username=NewUsername).first()
