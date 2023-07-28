@@ -6,12 +6,12 @@
     <button id="AccountSearch" @click.prevent="HandleAccountSearch">Search</button>
     <div v-if="SearchAccounts.FoundUsers !== null" id="SearchedAccounts">
       <div v-for="(user, index) in SearchAccounts.FoundUsers" @click="HandleAccountRedirect(user)" id="AccountHolder">
-        <div v-if="user !== SignedIn.SignedUser" id="AccountHolder">
+       
         <img v-if="SearchAccounts.FoundUserPhotos[index] === null" src="src/assets/Default.jpg" alt="Profile Picture" id="UserPhotos"/>
         <img v-else-if="SearchAccounts.FoundUserPhotos[index] .substr(0,8) === 'iVBORw0K'" :src="`data:image/png;base64,${SearchAccounts.FoundUserPhotos[index] }`"  alt="Profile Picture" id="UserPhotos"/>
         <img v-else  :src="`data:image/jpg;base64,${SearchAccounts.FoundUserPhotos[index] }`" alt="Profile Picture" id="UserPhotos"/>
         <p id="FoundUserName" >{{ user }}</p>
-      </div>
+      
     </div>
     </div>
 
@@ -99,6 +99,7 @@
       margin-top: 10%;
       background-color: rgb(35, 35, 35);
       position: absolute;
+      overflow-x: hidden;
     }
     #AccountSearch{
       height: 25%;
@@ -180,7 +181,7 @@
       cursor: pointer;
     }
     #Header{
-      width: 100vw;
+      width: 100%;
       height: 20%;;
       position: absolute;
       left: 0;
@@ -301,7 +302,8 @@ export default {
       if(this.Search.User.trim() === ""){
         return alert("Please enter a valid user")
       }
-      const url = `http://localhost:5000/AccountSearch?Username=${this.Search.User}`;
+      var requester = sessionStorage.getItem("User")
+      const url = `http://localhost:5000/AccountSearch?Username=${this.Search.User}&Requester=${requester}`;
       fetch(url, {
         method: 'GET',
         mode: 'cors',

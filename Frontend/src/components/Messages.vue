@@ -1,6 +1,6 @@
 <template>
     <div id ="MessageHeader">
-        <h1 id="BackButton"> Back </h1>
+        <h1 id="BackButton" @click.prevent="BackButton"> Back </h1>
         <img src="src/assets/Default.jpg" alt="Profile Picture" id="HeaderImage"/>
         <h3 id="HeaderUser">{{ Header.HeaderUser }}</h3>
     </div>
@@ -8,8 +8,8 @@
 
     </div>
     <div id="MessageCreateArea">
-        <textarea id="MessageWrite" placeholder="Write a message" maxlength="250"></textarea>
-        <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" id="SendButton" xmlns="http://www.w3.org/2000/svg">
+        <textarea id="MessageWrite" placeholder="Write a message" v-model="TextMessageCreate.MessageContent" maxlength="250"></textarea>
+        <svg @click.prevent="SendTextMessage" width="800px" height="800px" viewBox="0 0 24 24" fill="none" id="SendButton" xmlns="http://www.w3.org/2000/svg">
             <path fill-rule="evenodd" clip-rule="evenodd" d="M19.2111 2.06722L3.70001 5.94499C1.63843 6.46039 1.38108 9.28612 3.31563 10.1655L8.09467 12.3378C9.07447 12.7831 10.1351 12.944 11.1658 12.8342C11.056 13.8649 11.2168 14.9255 11.6622 15.9053L13.8345 20.6843C14.7139 22.6189 17.5396 22.3615 18.055 20.3L21.9327 4.78886C22.3437 3.14517 20.8548 1.6563 19.2111 2.06722ZM8.92228 10.517C9.85936 10.943 10.9082 10.9755 11.8474 10.6424C12.2024 10.5165 12.5417 10.3383 12.8534 10.1094C12.8968 10.0775 12.9397 10.0446 12.982 10.0108L15.2708 8.17974C15.6351 7.88831 16.1117 8.36491 15.8202 8.7292L13.9892 11.018C13.9553 11.0603 13.9225 11.1032 13.8906 11.1466C13.6617 11.4583 13.4835 11.7976 13.3576 12.1526C13.0244 13.0918 13.057 14.1406 13.4829 15.0777L15.6552 19.8567C15.751 20.0673 16.0586 20.0393 16.1147 19.8149L19.9925 4.30379C20.0372 4.12485 19.8751 3.96277 19.6962 4.00751L4.18509 7.88528C3.96065 7.94138 3.93264 8.249 4.14324 8.34473L8.92228 10.517Z" fill="#0F1729"/>
         </svg>
         <button id="SendImage">+</button>
@@ -23,7 +23,7 @@
         top: 0;
         left: 0;
         height: 15%;
-        width: 100vw;
+        width: 100%;
         border-bottom: 1px solid black;
     }
     #BackButton{
@@ -58,18 +58,18 @@
         position: absolute;
         top: 0;
         left: 0;
-        margin-top: 15vh;
-        height: 65%;
-        width: 100vw;
+        margin-top: 14vh;
+        height: 64%;
+        width: 100%;
     }
     #MessageCreateArea{
         background-color: rgb(46, 46, 46);
         position: absolute;
         top: 0;
         left: 0;
-        margin-top: 80vh;
-        height: 20%;
-        width: 100vw;
+        margin-top: 78vh;
+        height: 25%;
+        width: 100%;
         border-top: 1px solid black;
     }
     #MessageWrite{
@@ -118,20 +118,105 @@
         transition: 0.3s ease;
         cursor: pointer;
     }
+    @media (max-width: 480px) {
+        #HeaderUser{
+            margin-left: 65vw;
+            font-size: 1.5rem;
+            margin-top: 10%;
+        }
+        #SendImage{
+            margin-left: 3vw;
+            height: 10vh;
+            width: 10vh;
+            margin-top: 10%;
+        }
+        #MessageWrite{
+            margin-top: 7%;
+            margin-left: 28vw;
+        }
+        #SendButton{
+            height: 10vh;
+            margin-top: 10%;
+            width: 10vh;
+            margin-left: 75vw;
+        }
+    }
 </style>
 
 <script lang="ts">
+import SocketIO from "socket.io-client"
+
+var Sender = sessionStorage.getItem("User");
+
     export default {
-  mounted() {
-    var x = this.$route.query.User;
-   
-    },
+        created() {
+            const url = `http://localhost:5000/AccountRetrieveDetails?username=${this.$route.query.User}`;
+            fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    this.Header.UserID = data.Data.ID;
+                    this.Header.HeaderPhoto = data.Data.Photo
+                    
+                }).catch(error => {
+                    console.error('Error fetching user data:', error);
+                });
+
+            var SenderUserID = sessionStorage.getItem("Userid").toString();
+            var receiverID = this.Header.UserID.toString();
+
+            this.Header.RoomID = parseInt(SenderUserID + receiverID);
+
+            this.Socket = SocketIO("http://localhost:5000", { transports: ["polling", "websocket"] });
+            this.Socket.emit('join_room', { room: this.Header.RoomID });
+
+            this.Socket.on("private_message", data => {
+                console.log(data)
+            })
+        },
     data() {
         return {
+            Socket: null,
             Header:{
                 HeaderUser: this.$route.query.User,
                 HeaderPhoto: null,
+                UserID: 0,
+                RoomID: 0
             },
+            ReceivedMessages:{
+                MessageContent: [""],
+                MessageSender: "",
+                MessageType: ""
+            },
+            TextMessageCreate:{
+                MessageContent: "",
+                Recipient: this.$route.query.User,
+                Sender: Sender,
+                MessageType: "",
+            }
+        }
+    },
+    methods: {
+        BackButton(event: Event ){
+            console.log(event);
+            this.$router.push("/Contacts")
+        },
+        SendTextMessage(event: Event){
+            console.log(event);
+            this.Socket.emit("private_message", {
+                MessageContent: this.TextMessageCreate.MessageContent,
+                Recipient: this.TextMessageCreate.Recipient,
+                Sender: this.TextMessageCreate.Sender,
+                MessageType: "Text",
+                RoomID: this.Header.RoomID
+            });
+
+            this.TextMessageCreate.MessageContent = "";
         }
     }
 }

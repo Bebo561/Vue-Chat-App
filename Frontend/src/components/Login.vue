@@ -48,6 +48,7 @@
         console.log(token)
         sessionStorage.setItem("Token", data.Token);
         sessionStorage.setItem("User", this.Login.username);
+        sessionStorage.setItem("Userid", data.ID);
         alert(value); 
         this.$router.push('/Contacts');
     }).catch((err) => {

@@ -13,7 +13,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Bebo$561@localhost
 app.app_context().push()
 db = SQLAlchemy(app)
 salt = bcrypt.gensalt(10)
-socketio = SocketIO(app, cors_allowed_origins='http://localhost:3000')
+socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins='http://localhost:3000')
 
 class Users(db.Model):
    Userid = db.Column(db.Integer, primary_key = True)
@@ -24,9 +24,10 @@ class Users(db.Model):
 class MessagesWith(db.Model):
     Userid = db.Column(db.Integer, primary_key = True)
     MessagedUser = db.Column(db.String(20), unique = True)
-    MessagedUserId = db.column(db.Integer)
+    Chatid = db.column(db.Integer)
 
 class Messages(db.Model):
+    Chatid = db.Column(db.Integer)
     Messageid = db.Column(db.Integer, primary_key = True)
     Userfrom = db.Column(db.String(20))
     UserTo = db.Column(db.String(20))
@@ -68,10 +69,12 @@ def Login():
                     'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30),
                     'iat': datetime.datetime.utcnow()
                 }
+            ID = user.Userid
+            
             token = jwt.encode(payload, 'SECRET_KEY', algorithm='HS256')
             trueToken = jwt.decode(token, 'SECRET_KEY', algorithms=['HS256'])
             return jsonify({'Data': 'Success',
-                            'Token': token}), 200
+                            'Token': token, 'ID': ID}), 200
         else:
             return jsonify({'Data': 'Error'}),403
     else:
@@ -88,7 +91,8 @@ def AccountRetrieveDetails():
             base64_string = base64.b64encode(user.Photo).decode('utf-8')
         data = {
             'Username': user.Username,
-            'Photo': base64_string
+            'Photo': base64_string, 
+            "ID": user.Userid
         }
         return jsonify({'Data': data}), 200
     else:
@@ -156,7 +160,9 @@ def AccountUpdate():
 @app.route('/AccountSearch', methods=['GET'])
 def AccountSearch():  
     Username = request.args.get('Username')
-    User = Users.query.filter(Users.Username.contains(Username)).all()
+    Request = request.args.get("Requester")
+    print(Request)
+    User = Users.query.filter(Users.Username.contains(Username), ~Users.Username.like(Request)).all()
     UserNameList = []
     UserPhotos = []
     
@@ -174,12 +180,29 @@ def AccountSearch():
 
     return jsonify({"Data": Data}), 200
 
-@socketio.on('message')
-def handle_message(data):
-    print('received message: ' + data)
+@socketio.on("connect")
+def handle_connect():
+    print("Client connected.")
 
+@socketio.on('join_room')
+def on_join(data):
+    room = data['room']
+    join_room(room)
+    print(f"User joined room: {room}")
+
+@socketio.on('private_message')
+def handle_private_message(data):
+    recipient = data["Recipient"]
+    message = data["MessageContent"]
+    sender = data["Sender"]
+    type = data["MessageType"]
+    RoomID = data["RoomID"]
+
+    print(RoomID)
+
+    emit("private_message", {"sender": sender, "message": message, "MessageType": type}, room=RoomID)
 
 if __name__ == '__main__':
    db.create_all()
-   app.run(debug = True)
+   #app.run(debug = True)
    socketio.run(app)
