@@ -169,8 +169,29 @@ var Sender = sessionStorage.getItem("User");
 
             var SenderUserID = sessionStorage.getItem("Userid").toString();
             var receiverID = this.Header.UserID.toString();
+            
+            const urlTwo = `http:localhost:5000/RetreiveChatID?UserOne=${Sender}&UserTwo=${this.$route.query.User}`
+            fetch(urlTwo, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    if(data.Data === "No RoomID"){
+                        this.Header.RoomID = parseInt(SenderUserID + receiverID);
+                    }
+                    else{
+                        this.Header.RoomID = data.Data.RoomId
+                    }
+                    
+                }).catch(error => {
+                    console.error('Error fetching user data:', error);
+                });
 
-            this.Header.RoomID = parseInt(SenderUserID + receiverID);
+            
 
             this.Socket = SocketIO("http://localhost:5000", { transports: ["polling", "websocket"] });
             this.Socket.emit('join_room', { room: this.Header.RoomID });

@@ -15,26 +15,35 @@ db = SQLAlchemy(app)
 salt = bcrypt.gensalt(10)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins='http://localhost:3000')
 
+#Holds all user information
 class Users(db.Model):
    Userid = db.Column(db.Integer, primary_key = True)
    Username = db.Column(db.String(20), unique = True)
    Photo = db.Column(db.LargeBinary(length=(2**32) - 1))
    Password = db.Column(db.String(100)) 
-   
-class MessagesWith(db.Model):
-    Userid = db.Column(db.Integer, primary_key = True)
-    MessagedUser = db.Column(db.String(20), unique = True)
+
+#Holds private chat room information and ids 
+class Chats(db.Model):
+    UserOne = db.Column(db.Integer, primary_key = True)
+    UserTwo = db.Column(db.String(20), unique = True)
     Chatid = db.column(db.Integer)
 
+#Holds information about individual messages
 class Messages(db.Model):
     Chatid = db.Column(db.Integer)
     Messageid = db.Column(db.Integer, primary_key = True)
-    Userfrom = db.Column(db.String(20))
-    UserTo = db.Column(db.String(20))
-    Contents = db.Column(db.LargeBinary(length=(2**32) - 1))
+    Creator = db.Column(db.String(20), unique = True)
+
+    #Used if message is just text
+    textContent = db.Column(db.string(275))
+
+    #Used if message is an image
+    imageContent = db.Column(db.LargeBinary(length=(2**32) - 1))
+
     #Text, PNG, or JPG
     MessageType = db.column(db.String(20))
 
+#User registration endpoint
 @app.route('/Register', methods=['POST'])
 def Register():
     data = json.loads(request.data)
@@ -43,26 +52,31 @@ def Register():
     password = str(data["Password"])
     Password = bcrypt.hashpw(password.encode('utf-8'), bytes(salt))
 
+    #Make sure username is unique and already exists, if not than return error
     user = Users.query.filter_by(Username=Username).first()
     if user:
         return jsonify({'Data': 'Already Exists'}), 401
     try:
+        #Add user to database, return success.
         New_user = Users(Username= Username, Password = Password)
         db.session.add(New_user)
         db.session.commit()
         return jsonify({'Data': 'Success'}), 200
+    #Issue with database commit, send server error.
     except Exception as e:
         print(e)
-        return jsonify({'Data': 'Error'}),403
+        return jsonify({'Data': 'Server Error'}),403
     
 @app.route('/Login', methods=['POST'])
 def Login():
+    #Retrieve username of user trying to sign in, verify that username is valid, and compare passwords 
     data = json.loads(request.data)
     username = data["Username"]
     password = str(data["Password"])
     user = Users.query.filter_by(Username=username).first()
     hashedPass = str(user.Password)
     if user:
+        #If the user exists, and the password is valid, create a jwt authentication token to send to the frontend for security.
         if bcrypt.checkpw(password.encode('utf-8'), hashedPass.encode('utf-8')):
             payload = {
                     'id': username,
@@ -83,9 +97,12 @@ def Login():
 #This will be called everytime the account page is loaded, sends details about the account to the frontend.
 @app.route('/AccountRetrieveDetails', methods=['GET'])
 def AccountRetrieveDetails():
+    #When the account page is loaded, retrieve the user trying to access their data
     username = request.args.get('username')
     user = Users.query.filter_by(Username = username).first()
     base64_string = None
+    #If the user is valid, and they have set a profile picture, translate that profile picture from binary to base64,
+    # and send their ID, username, and profile picture to the frontend.
     if user:
         if user.Photo is not None:
             base64_string = base64.b64encode(user.Photo).decode('utf-8')
@@ -108,17 +125,21 @@ def AccountUpdate():
     OldUsername = data["Username"]
     NewUsername = data["NewUser"]
     NewPhoto = data["Photo"]
-    try:
+    try:    
+            #Test to see if the JWT is valid, if not return errors based on why it was invalid.
             jwt.decode(Token, 'SECRET_KEY', algorithms=['HS256'])
+            #If valid, check if the username the user is trying to change to already exists, if it does return an error.
             NewUser = Users.query.filter_by(Username=NewUsername).first()
             if NewUser:
                 return jsonify({"Data": "Username Already Taken"}), 402
             else:
+                #If the username is not taken, and the user is trying to update both their username and pfp, update both in 
+                # database and send new data to the frontend.
                 user = Users.query.filter_by(Username=OldUsername).first()
                 if NewUsername is not None and NewPhoto is not None:
                     if NewUsername.isspace() == True:
-                        print("Hi")
                         return jsonify({"Data": "Please Enter a valid Username"}), 402
+                    #Turn base64 image into binary format for storage.
                     binaryData = base64.b64decode(NewPhoto)
                     user.Photo = binaryData
                     user.Username = NewUsername
@@ -128,7 +149,8 @@ def AccountUpdate():
                     "Photo": NewPhoto
                     }
                     return jsonify({"Data": ReturnData}), 200
-                    
+                
+                #If the user is only updating their photo
                 elif NewPhoto is not None:
                     binaryData = base64.b64decode(NewPhoto)
                     user.Photo = binaryData
@@ -138,7 +160,8 @@ def AccountUpdate():
                     "Photo": NewPhoto
                     }
                     return jsonify({"Data": ReturnData}), 200
-
+                
+                #If the user is updating their username into something valid.
                 elif NewUsername.isspace() == False:
                     user.Username = NewUsername
                     db.session.commit()
@@ -148,24 +171,32 @@ def AccountUpdate():
                     }
                     return jsonify({"Data": ReturnData}), 200
                 
+                #If the user has sent an invalid username
                 elif NewUsername.isspace() == True:
                     print("Hi")
                     return jsonify({"Data": "Please Enter a valid Username"}), 402
-
     except jwt.ExpiredSignatureError:
             return jsonify({"Data": "Token Expired"}), 401
     except jwt.InvalidTokenError:
             return jsonify({"Data": "Invalid Token"}), 403
 
+#Function used for account searches 
 @app.route('/AccountSearch', methods=['GET'])
 def AccountSearch():  
+    #Retrieve paramters of username being searched, and the username of the user making the search
     Username = request.args.get('Username')
     Request = request.args.get("Requester")
     print(Request)
+
+    #Return all users similar to the User being searched, but is not the user searching.
+    #Users cannot search for themselves.
     User = Users.query.filter(Users.Username.contains(Username), ~Users.Username.like(Request)).all()
+
+    #Lists that hold User Information 
     UserNameList = []
     UserPhotos = []
     
+    #Goes through each user found, returns their Usernames and profile pics to display in frontend.
     for i in range(len(User)):
         UserNameList.append(User[i].Username)
         if User[i].Photo is not None:
@@ -179,6 +210,36 @@ def AccountSearch():
     }
 
     return jsonify({"Data": Data}), 200
+
+#Function that is used to retrieve all messages in a chat history, and send them to frontend.
+@app.route('/RetrieveMessageHistory', methods=["GET"])
+def RetrieveMessageHistory():
+    return
+
+#Function that checks if a room ID already exists for a given chat, and sends it to the frontend.
+@app.route('/RetreiveChatID', methods=["GET"])
+def RetrieveChatID():
+    UserOne = request.args.get('UserOne')
+    UserTwo = request.args.get("UserTwo")
+
+    #Or query that checks if messages between two users already exists.
+
+    query = db.or_(
+    db.and_(UserOne == UserOne, UserTwo == UserTwo),
+    db.and_(UserTwo == UserTwo, UserTwo == UserOne)
+    )  
+
+    #Check if a chat between two users already exists, and return it.
+    chat = Chats.query.filter(query).first()
+
+    #If it exists, return the roomID to the frontend, else return the information that there is no existing chats yet.
+    if chat is not None:
+        Data = {
+            "RoomId": chat.Chatid
+        }
+        return jsonify({"Data": Data}), 200
+    else:
+        return jsonify({"Data": "No RoomId"}), 200
 
 @socketio.on("connect")
 def handle_connect():
@@ -200,6 +261,20 @@ def handle_private_message(data):
 
     print(RoomID)
 
+    #Adds every room into a chat table, where the chatID, and participates of the room are stored. This information is later
+    # used in order to retrieve open chats in the frontend. 
+    Chat = Chats.query.filter_by(Chatid=RoomID).first()
+    if Chat is None:
+        NewChat = Chats(UserOne = sender, UserTwo = recipient, Chatid=RoomID)
+        db.session.add(NewChat)
+        db.session.commit()
+    
+    #Saves each message into the sql database.
+    NewMessage = Messages(Creator=sender, Chatid=RoomID, textContent=message, MessageType=type)
+    db.session.add(NewMessage)
+    db.session.commit()
+
+    #Send message to the Room received from
     emit("private_message", {"sender": sender, "message": message, "MessageType": type}, room=RoomID)
 
 if __name__ == '__main__':
