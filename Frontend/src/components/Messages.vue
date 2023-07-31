@@ -159,7 +159,6 @@ var Sender = sessionStorage.getItem("User");
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data);
                     this.Header.UserID = data.Data.ID;
                     this.Header.HeaderPhoto = data.Data.Photo
                     
@@ -170,7 +169,7 @@ var Sender = sessionStorage.getItem("User");
             var SenderUserID = sessionStorage.getItem("Userid").toString();
             var receiverID = this.Header.UserID.toString();
             
-            const urlTwo = `http:localhost:5000/RetreiveChatID?UserOne=${Sender}&UserTwo=${this.$route.query.User}`
+            const urlTwo = `http://localhost:5000/RetreiveChatID?UserOne=${Sender}&UserTwo=${this.$route.query.User}`
             fetch(urlTwo, {
                 method: 'GET',
                 mode: 'cors',
@@ -178,27 +177,30 @@ var Sender = sessionStorage.getItem("User");
                     "Content-Type": "application/json"
                 }
             }).then(response => response.json())
-                .then(data => {
-                    console.log(data)
-                    if(data.Data === "No RoomID"){
-                        this.Header.RoomID = parseInt(SenderUserID + receiverID);
-                    }
-                    else{
-                        this.Header.RoomID = data.Data.RoomId
-                    }
-                    
-                }).catch(error => {
-                    console.error('Error fetching user data:', error);
+            .then(data => {
+                console.log(data)
+                if (data.Data === "No RoomId") {
+                    this.Header.RoomID = parseInt(SenderUserID + receiverID);
+                    console.log("Hi")
+                } else {
+                    this.Header.RoomID = data.Data.RoomId;
+                }
+
+                // Now that the data is available, establish the WebSocket connection
+                this.Socket = SocketIO("http://localhost:5000", { transports: ["polling", "websocket"] });
+                console.log(SenderUserID);
+                console.log(receiverID);
+                console.log(this.Header.RoomID);
+                this.Socket.emit('join_room', { room: this.Header.RoomID });
+
+                this.Socket.on("private_message", data => {
+                    console.log(data);
                 });
 
+            }).catch(error => {
+                console.error('Error fetching user data:', error);
+            });  
             
-
-            this.Socket = SocketIO("http://localhost:5000", { transports: ["polling", "websocket"] });
-            this.Socket.emit('join_room', { room: this.Header.RoomID });
-
-            this.Socket.on("private_message", data => {
-                console.log(data)
-            })
         },
     data() {
         return {
@@ -229,6 +231,7 @@ var Sender = sessionStorage.getItem("User");
         },
         SendTextMessage(event: Event){
             console.log(event);
+            
             this.Socket.emit("private_message", {
                 MessageContent: this.TextMessageCreate.MessageContent,
                 Recipient: this.TextMessageCreate.Recipient,
@@ -238,6 +241,7 @@ var Sender = sessionStorage.getItem("User");
             });
 
             this.TextMessageCreate.MessageContent = "";
+            
         }
     }
 }

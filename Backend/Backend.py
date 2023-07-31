@@ -24,9 +24,9 @@ class Users(db.Model):
 
 #Holds private chat room information and ids 
 class Chats(db.Model):
-    UserOne = db.Column(db.Integer, primary_key = True)
+    UserOne = db.Column(db.Integer)
     UserTwo = db.Column(db.String(20), unique = True)
-    Chatid = db.column(db.Integer)
+    Chatid = db.Column(db.Integer, primary_key = True)
 
 #Holds information about individual messages
 class Messages(db.Model):
@@ -35,13 +35,13 @@ class Messages(db.Model):
     Creator = db.Column(db.String(20), unique = True)
 
     #Used if message is just text
-    textContent = db.Column(db.string(275))
+    textContent = db.Column(db.String(275))
 
     #Used if message is an image
     imageContent = db.Column(db.LargeBinary(length=(2**32) - 1))
 
     #Text, PNG, or JPG
-    MessageType = db.column(db.String(20))
+    MessageType = db.Column(db.String(20))
 
 #User registration endpoint
 @app.route('/Register', methods=['POST'])
@@ -214,7 +214,25 @@ def AccountSearch():
 #Function that is used to retrieve all messages in a chat history, and send them to frontend.
 @app.route('/RetrieveMessageHistory', methods=["GET"])
 def RetrieveMessageHistory():
-    return
+    RoomID = request.args.get("RoomID")
+
+    messages = Messages.query.filter_by(Chatid=RoomID).order_by(Messages.Messageid)
+
+    if messages is not None:
+        MessageList = [{'Chatid': M.Chatid, "MessageId": M.Messageid,'Creater': M.Creator, "textContent": M.textContent, "imageContent": M.imageContext, "MessageType": M.MessageType} for M in messages]
+        return jsonify({"Data": MessageList}), 200
+    else:
+        return jsonify({"Data": "No message history"}), 200
+
+#Deletes a message by MessageID
+@app.route('/DeleteMessage', methods=["DELETE"])
+def DeleteMessage():
+    MessageID = request.args.get("Messageid")
+    message = Messages.query.filter_by(Messageid = MessageID).first
+    db.session.delete(message)
+    db.session.commit()
+    return jsonify({'Data': 'Message deleted successfully'}), 200
+
 
 #Function that checks if a room ID already exists for a given chat, and sends it to the frontend.
 @app.route('/RetreiveChatID', methods=["GET"])
@@ -231,14 +249,17 @@ def RetrieveChatID():
 
     #Check if a chat between two users already exists, and return it.
     chat = Chats.query.filter(query).first()
+    
 
     #If it exists, return the roomID to the frontend, else return the information that there is no existing chats yet.
     if chat is not None:
         Data = {
             "RoomId": chat.Chatid
         }
+        print("HI")
         return jsonify({"Data": Data}), 200
     else:
+        print("Bye")
         return jsonify({"Data": "No RoomId"}), 200
 
 @socketio.on("connect")
@@ -274,8 +295,11 @@ def handle_private_message(data):
     db.session.add(NewMessage)
     db.session.commit()
 
+    #Retrieve unique message id.
+    message_id = NewMessage.Messageid
+
     #Send message to the Room received from
-    emit("private_message", {"sender": sender, "message": message, "MessageType": type}, room=RoomID)
+    emit("private_message", {"sender": sender, "message": message, "MessageType": type, "Messageid": message_id}, room=RoomID)
 
 if __name__ == '__main__':
    db.create_all()
