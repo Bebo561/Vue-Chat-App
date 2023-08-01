@@ -2,10 +2,15 @@
     <div id ="MessageHeader">
         <h1 id="BackButton" @click.prevent="BackButton"> Back </h1>
         <img src="src/assets/Default.jpg" alt="Profile Picture" id="HeaderImage"/>
+        <img v-if="Header.HeaderPhoto === null" src="src/assets/Default.jpg" alt="Profile Picture" id="HeaderImage"/>
+        <img v-else-if="Header.HeaderPhoto.substr(0,8) === 'iVBORw0K'" :src="`data:image/png;base64,${Header.HeaderPhoto }`"  alt="Profile Picture" id="HeaderImage"/>
+        <img v-else  :src="`data:image/jpg;base64,${Header.HeaderPhoto }`" alt="Profile Picture" id="HeaderImage"/>
         <h3 id="HeaderUser">{{ Header.HeaderUser }}</h3>
     </div>
     <div id="MessageSection">
-
+        <div v-for="message in ReceivedMessages.Messages" id="MessageBox" :key="message.MessageId">
+            <div v-if="message.MessageType === 'Text'" :class="{'MessageLeft': !IsSender(message), 'MessageRight': IsSender(message)}" >{{ message.textContent }}</div>
+        </div>
     </div>
     <div id="MessageCreateArea">
         <textarea id="MessageWrite" placeholder="Write a message" v-model="TextMessageCreate.MessageContent" maxlength="250"></textarea>
@@ -60,15 +65,44 @@
         left: 0;
         margin-top: 14vh;
         height: 64%;
-        width: 100%;
+        width: 98.6%;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+    }
+    #MessageBox{
+        display: flex;
+        flex-direction: column;
+    }
+    .MessageRight{
+        background-color: white;
+        max-width: 70%;
+        word-wrap: break-word;
+        display: inline-block;
+        padding: 10px 15px;
+        border-radius: 10px;
+        align-self: flex-end; 
+        margin-bottom: 10px;
+        
+    }
+    .MessageLeft{
+        background-color: white;
+        max-width: 70%;
+        word-wrap: break-word;
+        display: inline-block;
+        padding: 10px 15px;
+        border-radius: 10px;
+        align-self: flex-start; 
+        margin-bottom: 10px;
     }
     #MessageCreateArea{
         background-color: rgb(46, 46, 46);
         position: absolute;
         top: 0;
         left: 0;
-        margin-top: 78vh;
-        height: 25%;
+        margin-top: 79vh;
+        height: 24%;
         width: 100%;
         border-top: 1px solid black;
     }
@@ -134,6 +168,9 @@
             margin-top: 7%;
             margin-left: 28vw;
         }
+        #MessageSection{
+            width: 95%;
+        }
         #SendButton{
             height: 10vh;
             margin-top: 10%;
@@ -181,25 +218,43 @@ var Sender = sessionStorage.getItem("User");
                 console.log(data)
                 if (data.Data === "No RoomId") {
                     this.Header.RoomID = parseInt(SenderUserID + receiverID);
-                    console.log("Hi")
+                    console.log("No RoomID")
                 } else {
+                    console.log("RoomID Received")
                     this.Header.RoomID = data.Data.RoomId;
                 }
 
                 // Now that the data is available, establish the WebSocket connection
                 this.Socket = SocketIO("http://localhost:5000", { transports: ["polling", "websocket"] });
-                console.log(SenderUserID);
-                console.log(receiverID);
+                
                 console.log(this.Header.RoomID);
                 this.Socket.emit('join_room', { room: this.Header.RoomID });
 
                 this.Socket.on("private_message", data => {
-                    console.log(data);
+                    this.ReceivedMessages.Messages.push(data)
                 });
 
+                const urlThree = `http://localhost:5000/RetrieveMessageHistory?RoomID=${this.Header.RoomID}`;
+                fetch(urlThree, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }).then(response => response.json())
+                    .then(data => {
+                        if (data.Data !== "No message history") {
+                            this.ReceivedMessages.Messages.push(...data.Data);
+                        }
+                        console.log(this.ReceivedMessages.Messages)
+                    }).catch(error => {
+                        console.error('Error fetching user data:', error);
+                    });
             }).catch(error => {
                 console.error('Error fetching user data:', error);
             });  
+            
+
             
         },
     data() {
@@ -212,9 +267,7 @@ var Sender = sessionStorage.getItem("User");
                 RoomID: 0
             },
             ReceivedMessages:{
-                MessageContent: [""],
-                MessageSender: "",
-                MessageType: ""
+                Messages: []
             },
             TextMessageCreate:{
                 MessageContent: "",
@@ -242,6 +295,9 @@ var Sender = sessionStorage.getItem("User");
 
             this.TextMessageCreate.MessageContent = "";
             
+        },
+        IsSender(message : object){
+            return message.Creater === this.TextMessageCreate.Sender;
         }
     }
 }

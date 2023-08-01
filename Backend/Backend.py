@@ -24,7 +24,7 @@ class Users(db.Model):
 
 #Holds private chat room information and ids 
 class Chats(db.Model):
-    UserOne = db.Column(db.Integer)
+    UserOne = db.Column(db.String(20))
     UserTwo = db.Column(db.String(20), unique = True)
     Chatid = db.Column(db.Integer, primary_key = True)
 
@@ -32,7 +32,7 @@ class Chats(db.Model):
 class Messages(db.Model):
     Chatid = db.Column(db.Integer)
     Messageid = db.Column(db.Integer, primary_key = True)
-    Creator = db.Column(db.String(20), unique = True)
+    Creator = db.Column(db.String(20))
 
     #Used if message is just text
     textContent = db.Column(db.String(275))
@@ -215,11 +215,12 @@ def AccountSearch():
 @app.route('/RetrieveMessageHistory', methods=["GET"])
 def RetrieveMessageHistory():
     RoomID = request.args.get("RoomID")
+    print(RoomID)
+    messages = Messages.query.filter_by(Chatid=RoomID).order_by(Messages.Messageid).all()
 
-    messages = Messages.query.filter_by(Chatid=RoomID).order_by(Messages.Messageid)
 
     if messages is not None:
-        MessageList = [{'Chatid': M.Chatid, "MessageId": M.Messageid,'Creater': M.Creator, "textContent": M.textContent, "imageContent": M.imageContext, "MessageType": M.MessageType} for M in messages]
+        MessageList = [{'Chatid': M.Chatid, "MessageId": M.Messageid,'Creater': M.Creator, "textContent": M.textContent, "imageContent": M.imageContent, "MessageType": M.MessageType} for M in messages]
         return jsonify({"Data": MessageList}), 200
     else:
         return jsonify({"Data": "No message history"}), 200
@@ -256,7 +257,6 @@ def RetrieveChatID():
         Data = {
             "RoomId": chat.Chatid
         }
-        print("HI")
         return jsonify({"Data": Data}), 200
     else:
         print("Bye")
@@ -286,7 +286,7 @@ def handle_private_message(data):
     # used in order to retrieve open chats in the frontend. 
     Chat = Chats.query.filter_by(Chatid=RoomID).first()
     if Chat is None:
-        NewChat = Chats(UserOne = sender, UserTwo = recipient, Chatid=RoomID)
+        NewChat = Chats(UserOne = sender, UserTwo = recipient, Chatid=int(RoomID))
         db.session.add(NewChat)
         db.session.commit()
     
@@ -299,7 +299,7 @@ def handle_private_message(data):
     message_id = NewMessage.Messageid
 
     #Send message to the Room received from
-    emit("private_message", {"sender": sender, "message": message, "MessageType": type, "Messageid": message_id}, room=RoomID)
+    emit("private_message", {"Creater": sender, "textContent": message, "MessageType": type, "MessageId": message_id}, room=RoomID)
 
 if __name__ == '__main__':
    db.create_all()
