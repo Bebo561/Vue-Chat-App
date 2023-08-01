@@ -9,6 +9,9 @@
     <div id="MessageSection"  ref="MessageSection">
         <div v-for="message in ReceivedMessages.Messages" id="MessageBox" :key="message.MessageId">
             <div v-if="message.MessageType === 'Text'" :class="{'MessageLeft': !IsSender(message), 'MessageRight': IsSender(message)}" >{{ message.textContent }}</div>
+            <img v-else-if="message.MessageType === 'Image' && message.imageContent.substr(0,8) === 'iVBORw0K'" :src="`data:image/png;base64,${message.imageContent }`"  alt="Profile Picture" :class="{'ImageLeft': !IsSender(message), 'ImageRight': IsSender(message)}"/>
+            <img v-else-if="message.MessageType === 'Image' && message.imageContent.substr(0,8) !== 'iVBORw0K'" :src="`data:image/jpg;base64,${message.imageContent }`" alt="Profile Picture" :class="{'ImageLeft': !IsSender(message), 'ImageRight': IsSender(message)}"/>
+            <button v-if="IsSender(message)"  id="deleteButton" @click.prevent="DeleteMessage(message)">x</button>
         </div>
     </div>
     <div id="MessageCreateArea">
@@ -16,7 +19,12 @@
         <svg @click.prevent="SendTextMessage" width="800px" height="800px" viewBox="0 0 24 24" fill="none" id="SendButton" xmlns="http://www.w3.org/2000/svg">
             <path fill-rule="evenodd" clip-rule="evenodd" d="M19.2111 2.06722L3.70001 5.94499C1.63843 6.46039 1.38108 9.28612 3.31563 10.1655L8.09467 12.3378C9.07447 12.7831 10.1351 12.944 11.1658 12.8342C11.056 13.8649 11.2168 14.9255 11.6622 15.9053L13.8345 20.6843C14.7139 22.6189 17.5396 22.3615 18.055 20.3L21.9327 4.78886C22.3437 3.14517 20.8548 1.6563 19.2111 2.06722ZM8.92228 10.517C9.85936 10.943 10.9082 10.9755 11.8474 10.6424C12.2024 10.5165 12.5417 10.3383 12.8534 10.1094C12.8968 10.0775 12.9397 10.0446 12.982 10.0108L15.2708 8.17974C15.6351 7.88831 16.1117 8.36491 15.8202 8.7292L13.9892 11.018C13.9553 11.0603 13.9225 11.1032 13.8906 11.1466C13.6617 11.4583 13.4835 11.7976 13.3576 12.1526C13.0244 13.0918 13.057 14.1406 13.4829 15.0777L15.6552 19.8567C15.751 20.0673 16.0586 20.0393 16.1147 19.8149L19.9925 4.30379C20.0372 4.12485 19.8751 3.96277 19.6962 4.00751L4.18509 7.88528C3.96065 7.94138 3.93264 8.249 4.14324 8.34473L8.92228 10.517Z" fill="#0F1729"/>
         </svg>
-        <button id="SendImage">+</button>
+        <button id="SendImage" @click="ImageUpload = !ImageUpload">+</button>
+    </div>
+    <div v-if="ImageUpload === true" id="UploadOverlay">
+        <p id="UploadOverlayExit" @click="ImageUpload = !ImageUpload">X</p>
+        <input id="InputPhoto" type="file" @change="handleFileUpload" accept=".png, .jpg, .jpeg" />
+        <button id="ImageUpload" @click.prevent="SendImageMessage">Upload</button>
     </div>
 
 </template>
@@ -29,6 +37,64 @@
         height: 15%;
         width: 100%;
         border-bottom: 1px solid black;
+    }
+    #UploadOverlayExit{
+        top: 0;
+        left: 1;
+        position: absolute;
+        color: white;
+        font-size: 3rem;
+    }
+    #UploadOverlayExit:hover{
+        cursor: pointer;
+        color: blue;
+        transition: 0.3s all;
+    }
+    #UploadOverlay{
+        height: 60vh;
+        width: 70vh;
+        margin-left: 20vw;
+        margin-top: 20vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border: 1px solid black;
+        align-items: center;
+        border-radius: 4px;
+        position: absolute;
+        background-color: rgb(60, 60, 60);
+    }
+    #ImageUpload{
+        color: black;
+        background-color: blue;
+        height: 7vh;
+        margin-top: 10%;
+        border: 1px solid black;
+        border-radius: 8px;
+        width: 5vw;
+    }
+    #ImageUpload:hover{
+        background-color: white;
+        transition: 0.3s ease;
+        cursor: pointer;
+    }
+    #deleteButton{
+        width: 2vw;
+        border: 1px solid black;
+        border-radius: 50%;
+        background-color: black;
+        color: red;
+        font-size: 1rem;
+        font-weight: 500;
+        align-self: flex-end; 
+        display: inline-block;
+        margin-bottom: 15px;
+    }
+    #deleteButton:hover{
+        cursor: pointer;
+        background-color: red;
+        color: black;
+        transition: 0.3s ease;
     }
     #BackButton{
         color: rgb(226, 218, 218);
@@ -96,6 +162,18 @@
         align-self: flex-start; 
         margin-bottom: 10px;
     }
+    .ImageRight{
+        width: 20vw;
+        height: 30vh;
+        display: inline-block;
+        align-self: flex-end;
+    }
+    .ImageLeft{
+        width: 20vw;
+        height: 30vh;
+        display: inline-block;
+        align-self: flex-start;
+    }
     #MessageCreateArea{
         background-color: rgb(46, 46, 46);
         position: absolute;
@@ -154,7 +232,7 @@
     }
     @media (max-width: 480px) {
         #HeaderUser{
-            margin-left: 65vw;
+            margin-left: 67vw;
             font-size: 1.5rem;
             margin-top: 10%;
         }
@@ -176,6 +254,28 @@
             margin-top: 10%;
             width: 10vh;
             margin-left: 75vw;
+        }
+        .ImageLeft{
+            width: 50vw;
+
+        }
+        .ImageRight{
+            width: 50vw;
+        }
+        #deleteButton{
+            margin-right: 1vw;
+            width: 7vw;
+        }
+        #InputPhoto{
+            width: 10vw;
+        }
+        #UploadOverlay{
+            width: 60vw;
+            margin-left: 10vw;
+        }
+        #ImageUpload{
+            width: 20vw;
+
         }
     }
 </style>
@@ -236,6 +336,10 @@ var Sender = sessionStorage.getItem("User");
                     
                 });
 
+                this.Socket.on("media_message", data => {
+                    this.ReceivedMessages.Messages.push(data);
+                })
+
                 const urlThree = `http://localhost:5000/RetrieveMessageHistory?RoomID=${this.Header.RoomID}`;
                 fetch(urlThree, {
                     method: 'GET',
@@ -265,6 +369,7 @@ var Sender = sessionStorage.getItem("User");
     data() {
         return {
             Socket: null,
+            ImageUpload: false,
             Header:{
                 HeaderUser: this.$route.query.User,
                 HeaderPhoto: null,
@@ -279,6 +384,7 @@ var Sender = sessionStorage.getItem("User");
                 Recipient: this.$route.query.User,
                 Sender: Sender,
                 MessageType: "",
+                ImageFile: ""
             }
         }
     },
@@ -301,9 +407,52 @@ var Sender = sessionStorage.getItem("User");
             this.TextMessageCreate.MessageContent = "";
             
         },
+        handleFileUpload(event : Event) {
+                this.TextMessageCreate.ImageFile =  event.target.files[0];  
+                console.log(this.TextMessageCreate.ImageFile)
+        },
+        SendImageMessage(event: Event){
+            console.log(event);
+            if(this.TextMessageCreate.ImageFile ===""){
+                return alert("Please enter an Image")
+            }
+            const reader = new FileReader();
+                reader.readAsDataURL(this.TextMessageCreate.ImageFile);
+                reader.onload = () => {
+                    const base64String = reader.result.split(',')[1];
+                    this.Socket.emit("media_message", {
+                        imageContent: base64String,
+                        Recipient: this.TextMessageCreate.Recipient,
+                        Creator: this.TextMessageCreate.Sender,
+                        MessageType: "Image",
+                        RoomID: this.Header.RoomID
+                });
+            }
+            this.TextMessageCreate.ImageFile = "";
+            
+        },
+        DeleteMessage(message : any){
+            console.log(message.MessageId)
+            const url = `http://localhost:5000/DeleteMessage?MessageID=${message.MessageId}`
+            fetch(url, {
+                method: 'DELETE',
+                mode: 'cors',
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => response.json())
+            .then(data => {
+                console.log(data)
+                const index = this.ReceivedMessages.Messages.findIndex(m => m.MessageId === message.MessageId);
+                if (index !== -1) {
+                    this.ReceivedMessages.Messages.splice(index, 1);
+                }
+            }).catch(error => {
+                console.error('Error deleting the message:', error);
+            });
+        },
         IsSender(message : object){
-            var user = sessionStorage.getItem("User")
-            console.log(message.Creator)
+            var user = sessionStorage.getItem("User");
             return message.Creator === user;
         },
         scrollMessageSectionToBottom() {

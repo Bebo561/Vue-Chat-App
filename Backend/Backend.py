@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import bcrypt
 from flask_cors import CORS
-from flask_socketio import SocketIO, join_room, leave_room, emit
+from flask_socketio import SocketIO, join_room,  emit
 import jwt, datetime
 import json, base64
 
@@ -218,9 +218,23 @@ def RetrieveMessageHistory():
     print(RoomID)
     messages = Messages.query.filter_by(Chatid=RoomID).order_by(Messages.Messageid).all()
 
-
+    MessageList = []
     if messages is not None:
-        MessageList = [{'Chatid': M.Chatid, "MessageId": M.Messageid,'Creater': M.Creator, "textContent": M.textContent, "imageContent": M.imageContent, "MessageType": M.MessageType} for M in messages]
+        for m in messages: 
+            base64String = None
+            if m.MessageType == "Image":
+                base64String = base64.b64encode(m.imageContent).decode('utf-8')   
+            data = {
+                'Chatid': m.Chatid,
+                "MessageId": m.Messageid,
+                "Creator": m.Creator,
+                "textContent": m.textContent,
+                "MessageType": m.MessageType,
+                "imageContent": base64String
+            }
+            MessageList.append(data)
+
+        
         return jsonify({"Data": MessageList}), 200
     else:
         return jsonify({"Data": "No message history"}), 200
@@ -228,8 +242,11 @@ def RetrieveMessageHistory():
 #Deletes a message by MessageID
 @app.route('/DeleteMessage', methods=["DELETE"])
 def DeleteMessage():
-    MessageID = request.args.get("Messageid")
-    message = Messages.query.filter_by(Messageid = MessageID).first
+    MessageID = request.args.get("MessageID")
+    message = Messages.query.filter_by(Messageid = MessageID).first()
+    if message is None:
+        return jsonify({"Error": "Message not found"}), 404
+
     db.session.delete(message)
     db.session.commit()
     return jsonify({'Data': 'Message deleted successfully'}), 200
@@ -272,6 +289,33 @@ def on_join(data):
     join_room(room)
     print(f"User joined room: {room}")
 
+@socketio.on("media_message")
+def handle_media_message(data):
+    Image = data["imageContent"]
+    Creator = data["Creator"]
+    Type = data["MessageType"]
+    RoomID = data["RoomID"]
+    recipient = data["Recipient"]
+
+    Chat = Chats.query.filter_by(Chatid=RoomID).first()
+    if Chat is None:
+        NewChat = Chats(UserOne = Creator, UserTwo = recipient, Chatid=int(RoomID))
+        db.session.add(NewChat)
+        db.session.commit()
+
+    binaryData = base64.b64decode(Image)
+    #Saves each message into the sql database.
+    NewMessage = Messages(Creator=Creator, Chatid=RoomID, imageContent=binaryData, MessageType=Type)
+    db.session.add(NewMessage)
+    db.session.commit()
+
+    #Retrieve unique message id.
+    message_id = NewMessage.Messageid
+
+    #Send message to the Room received from
+    emit("private_message", {"Creator": Creator, "imageContent": Image, "MessageType": Type, "MessageId": message_id}, room=RoomID)
+
+
 @socketio.on('private_message')
 def handle_private_message(data):
     recipient = data["Recipient"]
@@ -299,7 +343,7 @@ def handle_private_message(data):
     message_id = NewMessage.Messageid
 
     #Send message to the Room received from
-    emit("private_message", {"Creater": sender, "textContent": message, "MessageType": type, "MessageId": message_id}, room=RoomID)
+    emit("private_message", {"Creator": sender, "textContent": message, "MessageType": type, "MessageId": message_id}, room=RoomID)
 
 if __name__ == '__main__':
    db.create_all()
