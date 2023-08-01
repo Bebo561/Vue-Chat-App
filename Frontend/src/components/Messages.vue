@@ -1,13 +1,12 @@
 <template>
     <div id ="MessageHeader">
         <h1 id="BackButton" @click.prevent="BackButton"> Back </h1>
-        <img src="src/assets/Default.jpg" alt="Profile Picture" id="HeaderImage"/>
         <img v-if="Header.HeaderPhoto === null" src="src/assets/Default.jpg" alt="Profile Picture" id="HeaderImage"/>
         <img v-else-if="Header.HeaderPhoto.substr(0,8) === 'iVBORw0K'" :src="`data:image/png;base64,${Header.HeaderPhoto }`"  alt="Profile Picture" id="HeaderImage"/>
         <img v-else  :src="`data:image/jpg;base64,${Header.HeaderPhoto }`" alt="Profile Picture" id="HeaderImage"/>
         <h3 id="HeaderUser">{{ Header.HeaderUser }}</h3>
     </div>
-    <div id="MessageSection">
+    <div id="MessageSection"  ref="MessageSection">
         <div v-for="message in ReceivedMessages.Messages" id="MessageBox" :key="message.MessageId">
             <div v-if="message.MessageType === 'Text'" :class="{'MessageLeft': !IsSender(message), 'MessageRight': IsSender(message)}" >{{ message.textContent }}</div>
         </div>
@@ -40,7 +39,8 @@
         height: 5vh;
     }
     #HeaderImage{
-        height: 10vh;
+        height: 12vh;
+        width: 12vh;
         margin-left: 40vw;
         margin-top: 1%;
         top: 0;
@@ -182,7 +182,7 @@
 
 <script lang="ts">
 import SocketIO from "socket.io-client"
-
+import { ref } from "vue";
 var Sender = sessionStorage.getItem("User");
 
     export default {
@@ -231,7 +231,9 @@ var Sender = sessionStorage.getItem("User");
                 this.Socket.emit('join_room', { room: this.Header.RoomID });
 
                 this.Socket.on("private_message", data => {
+                   
                     this.ReceivedMessages.Messages.push(data)
+                    
                 });
 
                 const urlThree = `http://localhost:5000/RetrieveMessageHistory?RoomID=${this.Header.RoomID}`;
@@ -257,6 +259,9 @@ var Sender = sessionStorage.getItem("User");
 
             
         },
+    updated() {
+        this.scrollMessageSectionToBottom();
+    },
     data() {
         return {
             Socket: null,
@@ -266,9 +271,9 @@ var Sender = sessionStorage.getItem("User");
                 UserID: 0,
                 RoomID: 0
             },
-            ReceivedMessages:{
+            ReceivedMessages: ref({
                 Messages: []
-            },
+            }),
             TextMessageCreate:{
                 MessageContent: "",
                 Recipient: this.$route.query.User,
@@ -297,7 +302,13 @@ var Sender = sessionStorage.getItem("User");
             
         },
         IsSender(message : object){
-            return message.Creater === this.TextMessageCreate.Sender;
+            var user = sessionStorage.getItem("User")
+            console.log(message.Creator)
+            return message.Creator === user;
+        },
+        scrollMessageSectionToBottom() {
+            const messageSection = this.$refs.MessageSection;
+            messageSection.scrollTop = messageSection.scrollHeight;
         }
     }
 }

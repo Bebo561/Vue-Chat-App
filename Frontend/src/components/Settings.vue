@@ -83,12 +83,13 @@
     #AccountPhoto{
         height: 45%;
         margin-top: 2%;
+        width: 45vh;
         border-radius: 50%;
     }
     @media (max-width: 480px){
         #AccountPhoto{
             height: 35%;
-           
+            width: 35vh;
         }
         #Contacts{
             font-size: 1.5rem;
