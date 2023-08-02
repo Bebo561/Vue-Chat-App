@@ -418,6 +418,7 @@ var Sender = sessionStorage.getItem("User");
             if(this.TextMessageCreate.ImageFile ===""){
                 return alert("Please enter an Image")
             }
+            var sender = sessionStorage.getItem("User")
             const reader = new FileReader();
                 reader.readAsDataURL(this.TextMessageCreate.ImageFile);
                 reader.onload = () => {
@@ -425,7 +426,7 @@ var Sender = sessionStorage.getItem("User");
                     this.Socket.emit("media_message", {
                         imageContent: base64String,
                         Recipient: this.TextMessageCreate.Recipient,
-                        Creator: this.TextMessageCreate.Sender,
+                        Creator: sender,
                         MessageType: "Image",
                         RoomID: this.Header.RoomID
                 });
