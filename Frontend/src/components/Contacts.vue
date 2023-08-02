@@ -51,6 +51,12 @@
     </div>
   </div>
   <div id="Contacts">
+    <div v-for="user in Contacts.ContactedUsers" @click="HandleAccountRedirect(user.Username)" id="ContactColumn">
+      <img v-if="user.Photo === null" src="src/assets/Default.jpg" alt="Profile Picture" id="ContactPfp"/>
+        <img v-else-if=" user.Photo.substr(0,8) === 'iVBORw0K'" :src="`data:image/png;base64,${user.Photo }`"  alt="Profile Picture" id="ContactPfp"/>
+        <img v-else  :src="`data:image/jpg;base64,${user.Photo }`" alt="Profile Picture" id="ContactPfp"/>
+        <p id="ContactUsername" >{{ user.Username }}</p>
+    </div>
   </div>
     
 </template>
@@ -58,6 +64,30 @@
   #UserPhotos{
     height: 8vh;
     width: 8vh;
+    border-radius: 50%;
+    margin-left: 5%;
+  }
+  #ContactColumn{
+    width: 100%;
+    height: 17vh;
+    background-color: rgb(59, 58, 58);
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+  }
+  #ContactColumn:hover{
+    background-color: grey;
+    cursor: pointer;
+    transition: 0.3s ease;
+  }
+  #ContactUsername{
+    font-size: 2rem;
+    margin-top: -7%;
+    margin-left: 25%;
+  }
+  #ContactPfp{
+    height: 15vh;
+    width: 10vw;
+    margin-top: .5%;
     border-radius: 50%;
     margin-left: 5%;
   }
@@ -99,7 +129,8 @@
       margin-top: 10%;
       background-color: rgb(35, 35, 35);
       position: absolute;
-      overflow-x: hidden;
+      display: flex column;
+      align-items: center;
     }
     #AccountSearch{
       height: 25%;
@@ -249,6 +280,30 @@
       top: 0;
       margin-top: 4.5%;
     }
+    #ContactUsername{
+    font-size: 2rem;
+    margin-top: -27%;
+    margin-left: 40%;
+  }
+  #ContactPfp{
+    height: 15vh;
+    width: 23vw;
+    margin-top: 1%;
+    border-radius: 50%;
+    margin-left: 5%;
+  }
+  #SearchedAccounts{
+    margin-top: 8vh;
+    width: 45vw;
+    margin-left: 13vh;
+  }
+  #UserPhotos{
+    height: 5vh;
+    width: 10vw;
+  }
+  #FoundUserName{
+    font-size: 1rem;
+  }
   }
 </style>
 
@@ -267,6 +322,9 @@ export default {
       },
       Search:{
         User: ""
+      },
+      Contacts:{
+        ContactedUsers: []
       },
       SearchAccounts:{
         FoundUsers: null,
@@ -328,6 +386,23 @@ export default {
       },
       immediate: true
     } 
+  },
+  created (){
+    var user = sessionStorage.getItem("User")
+    const url = `http://localhost:5000/RetrieveChats?User=${user}`;
+    fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }).then(response => response.json())
+      .then(data => {
+        this.Contacts.ContactedUsers = data.Data;
+        console.log(this.Contacts.ContactedUsers)
+      }).catch(error => {
+        console.error('Error fetching user data:', error);
+      });
   }
 }
 

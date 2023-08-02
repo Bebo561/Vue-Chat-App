@@ -25,7 +25,7 @@ class Users(db.Model):
 #Holds private chat room information and ids 
 class Chats(db.Model):
     UserOne = db.Column(db.String(20))
-    UserTwo = db.Column(db.String(20), unique = True)
+    UserTwo = db.Column(db.String(20))
     Chatid = db.Column(db.Integer, primary_key = True)
 
 #Holds information about individual messages
@@ -239,6 +239,46 @@ def RetrieveMessageHistory():
     else:
         return jsonify({"Data": "No message history"}), 200
 
+#Retrieves user contacts for contact page
+@app.route('/RetrieveChats', methods=['GET'])
+def RetrieveChats():
+    User = request.args.get("User")
+    chat = Chats.query.filter(db.or_(Chats.UserOne == User, Chats.UserTwo == User)).all()
+    print(chat)
+    if chat is None:
+        return jsonify({'Data': 'No Chats'}), 200
+    ChatList = []
+    for c in chat:
+        if c.UserOne != User:
+            MessageWith = Users.query.filter_by(Username = c.UserOne).first()
+            base64_string = None
+            if MessageWith:
+                if MessageWith.Photo is not None:
+                    base64_string = base64.b64encode(MessageWith.Photo).decode('utf-8')
+                data = {
+                    'Username': MessageWith.Username,
+                    'Photo': base64_string, 
+                    "ID": MessageWith.Userid
+                }
+                ChatList.append(data)
+        else:
+            MessageWith = Users.query.filter_by(Username = c.UserTwo).first()
+            base64_string = None
+            if MessageWith:
+                if MessageWith.Photo is not None:
+                    base64_string = base64.b64encode(MessageWith.Photo).decode('utf-8')
+                data = {
+                    'Username': MessageWith.Username,
+                    'Photo': base64_string, 
+                    "ID": MessageWith.Userid
+                }
+                ChatList.append(data)
+    return jsonify({"Data": ChatList}), 200
+
+            
+
+
+
 #Deletes a message by MessageID
 @app.route('/DeleteMessage', methods=["DELETE"])
 def DeleteMessage():
@@ -258,11 +298,13 @@ def RetrieveChatID():
     UserOne = request.args.get('UserOne')
     UserTwo = request.args.get("UserTwo")
 
+    print(UserOne)
+    print(UserTwo)
     #Or query that checks if messages between two users already exists.
 
     query = db.or_(
-    db.and_(UserOne == UserOne, UserTwo == UserTwo),
-    db.and_(UserTwo == UserTwo, UserTwo == UserOne)
+    db.and_(Chats.UserOne == UserOne, Chats.UserTwo == UserTwo),
+    db.and_(Chats.UserTwo == UserTwo, Chats.UserTwo == UserOne)
     )  
 
     #Check if a chat between two users already exists, and return it.
@@ -324,7 +366,7 @@ def handle_private_message(data):
     type = data["MessageType"]
     RoomID = data["RoomID"]
 
-    print(RoomID)
+    print(sender)
 
     #Adds every room into a chat table, where the chatID, and participates of the room are stored. This information is later
     # used in order to retrieve open chats in the frontend. 
@@ -333,7 +375,6 @@ def handle_private_message(data):
         NewChat = Chats(UserOne = sender, UserTwo = recipient, Chatid=int(RoomID))
         db.session.add(NewChat)
         db.session.commit()
-    
     #Saves each message into the sql database.
     NewMessage = Messages(Creator=sender, Chatid=RoomID, textContent=message, MessageType=type)
     db.session.add(NewMessage)

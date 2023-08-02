@@ -298,13 +298,9 @@ var Sender = sessionStorage.getItem("User");
                 .then(data => {
                     this.Header.UserID = data.Data.ID;
                     this.Header.HeaderPhoto = data.Data.Photo
-                    
-                }).catch(error => {
-                    console.error('Error fetching user data:', error);
-                });
-
-            var SenderUserID = sessionStorage.getItem("Userid").toString();
+                    var SenderUserID = sessionStorage.getItem("Userid").toString();
             var receiverID = this.Header.UserID.toString();
+            
             
             const urlTwo = `http://localhost:5000/RetreiveChatID?UserOne=${Sender}&UserTwo=${this.$route.query.User}`
             fetch(urlTwo, {
@@ -317,7 +313,8 @@ var Sender = sessionStorage.getItem("User");
             .then(data => {
                 console.log(data)
                 if (data.Data === "No RoomId") {
-                    this.Header.RoomID = parseInt(SenderUserID + receiverID);
+                    var roomIDComponents = [SenderUserID, receiverID].sort();
+                    this.Header.RoomID = parseInt(roomIDComponents.join(''));
                     console.log("No RoomID")
                 } else {
                     console.log("RoomID Received")
@@ -358,7 +355,12 @@ var Sender = sessionStorage.getItem("User");
                     });
             }).catch(error => {
                 console.error('Error fetching user data:', error);
-            });  
+            }); 
+                }).catch(error => {
+                    console.error('Error fetching user data:', error);
+                });
+
+             
             
 
             
@@ -395,11 +397,11 @@ var Sender = sessionStorage.getItem("User");
         },
         SendTextMessage(event: Event){
             console.log(event);
-            
+            var sender = sessionStorage.getItem("User")
             this.Socket.emit("private_message", {
                 MessageContent: this.TextMessageCreate.MessageContent,
                 Recipient: this.TextMessageCreate.Recipient,
-                Sender: this.TextMessageCreate.Sender,
+                Sender: sender,
                 MessageType: "Text",
                 RoomID: this.Header.RoomID
             });
